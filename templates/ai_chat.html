@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}AI Assistant - StudySync Pro{% endblock %}
+{% block header %}StudySync AI 🤖{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid" style="grid-template-columns: 1fr; height: 80vh;">
+    <div class="glass-panel" style="display: flex; flex-direction: column; height: 100%; padding: 0;">
+
+        <!-- Chat History Area -->
+        <div id="chatHistory"
+            style="flex: 1; overflow-y: auto; padding: 2rem; display: flex; flex-direction: column; gap: 1.5rem;">
+            <!-- Welcome Message -->
+            <div class="chat-message ai-message">
+                <div class="avatar"><i class="fa-solid fa-robot"></i></div>
+                <div class="message-content">
+                    <p>Hello! I'm your AI Study Assistant. I can help you find info in your notes, summarize topics, or
+                        answer academic questions.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="chat-input-area"
+            style="padding: 2rem; border-top: 1px solid var(--glass-border); background: rgba(0,0,0,0.2);">
+            <form id="aiChatForm" style="display: flex; gap: 1rem;">
+                <input type="text" id="userQuestion" class="form-input"
+                    placeholder="Ask about your notes (e.g., 'What did I write about Biology?')" required
+                    style="height: 50px; border-radius: 25px; padding-left: 1.5rem;">
+                <button type="submit" class="btn btn-primary"
+                    style="border-radius: 50%; width: 50px; height: 50px; padding: 0; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </form>
+            <p style="text-align: center; font-size: 0.8rem; color: var(--col-text-muted); margin-top: 1rem;">
+                <i class="fa-solid fa-lock"></i> Context-aware answers based on your notes.
+            </p>
+        </div>
+    </div>
+</div>
+
+<style>
+    .chat-message {
+        display: flex;
+        gap: 1.5rem;
+        max-width: 800px;
+        margin: 0 auto;
+        width: 100%;
+        animation: fadeIn 0.3s ease;
+    }
+
+    .chat-message.user-message {
+        flex-direction: row-reverse;
+    }
+
+    .avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .ai-message .avatar {
+        background: linear-gradient(135deg, var(--col-primary), var(--col-accent));
+        color: white;
+    }
+
+    .user-message .avatar {
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        color: var(--col-text-muted);
+    }
+
+    .message-content {
+        background: rgba(255, 255, 255, 0.05);
+        padding: 1.5rem;
+        border-radius: 12px;
+        border: 1px solid var(--glass-border);
+        line-height: 1.6;
+    }
+
+    .user-message .message-content {
+        background: rgba(124, 58, 237, 0.1);
+        border-color: var(--col-primary);
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const chatForm = document.getElementById('aiChatForm');
+    const chatHistory = document.getElementById('chatHistory');
+    const userQuestion = document.getElementById('userQuestion');
+
+    chatForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const question = userQuestion.value.trim();
+        if (!question) return;
+
+        // Add User Message
+        appendMessage('user', question);
+        userQuestion.value = '';
+
+        // Add Loading Indicator
+        const loadingId = appendLoading();
+
+        try {
+            const res = await fetch('/api/ai/ask', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question })
+            });
+
+            const data = await res.json();
+
+            // Remove Loading
+            document.getElementById(loadingId).remove();
+
+            if (res.ok) {
+                appendMessage('ai', data.answer);
+            } else {
+                appendMessage('ai', 'Error: ' + (data.error || 'Failed to get response'));
+            }
+
+        } catch (err) {
+            document.getElementById(loadingId).remove();
+            appendMessage('ai', 'Connection error. Please try again.');
+        }
+    });
+
+    function appendMessage(role, text) {
+        const div = document.createElement('div');
+        div.className = `chat-message ${role}-message`;
+
+        const icon = role === 'ai' ? 'fa-robot' : 'fa-user';
+
+        // Escape HTML for text safety (basic)
+        const safeText = text.replace(/\n/g, '<br>');
+
+        div.innerHTML = `
+            <div class="avatar"><i class="fa-solid ${icon}"></i></div>
+            <div class="message-content">
+                <p>${safeText}</p>
+            </div>
+        `;
+
+        chatHistory.appendChild(div);
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
+
+    function appendLoading() {
+        const id = 'loading-' + Date.now();
+        const div = document.createElement('div');
+        div.id = id;
+        div.className = 'chat-message ai-message';
+        div.innerHTML = `
+            <div class="avatar"><i class="fa-solid fa-robot"></i></div>
+            <div class="message-content">
+                <p><i class="fa-solid fa-spinner fa-spin"></i> Thinking...</p>
+            </div>
+        `;
+        chatHistory.appendChild(div);
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+        return id;
+    }
+</script>
+{% endblock %}

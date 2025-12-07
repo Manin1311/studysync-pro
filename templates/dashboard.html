@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - StudySync Pro{% endblock %}
+{% block header %}Welcome back, Scholar! 🚀{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+    <!-- Stat Cards -->
+    <div class="stat-card glass-panel">
+        <span class="stat-label">Current Streak</span>
+        <div class="stat-value text-gradient">🔥 12 Days</div>
+        <p class="text-muted">Personal best: 15 days</p>
+    </div>
+
+    <div class="stat-card glass-panel">
+        <span class="stat-label">Notes Created</span>
+        <div class="stat-value">45</div>
+        <p class="text-muted">+5 this week</p>
+    </div>
+
+    <div class="stat-card glass-panel">
+        <span class="stat-label">Flashcards Due</span>
+        <div class="stat-value" style="color: var(--col-warning)">28</div>
+        <button class="btn btn-primary btn-sm" style="margin-top: auto;">Review Now</button>
+    </div>
+</div>
+
+<div class="dashboard-layout" style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
+    <!-- Main Chart Area -->
+    <div class="glass-panel" style="padding: 1.5rem;">
+        <div class="flex-between mb-1" style="margin-bottom: 1rem;">
+            <h3>Study Focus Analysis</h3>
+            <select class="form-input" style="width: auto; padding: 0.5rem;">
+                <option>This Week</option>
+                <option>This Month</option>
+            </select>
+        </div>
+        <div style="height: 300px; width: 100%;">
+            <canvas id="studyChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Upcoming items -->
+    <div class="glass-panel" style="padding: 1.5rem;">
+        <h3 style="margin-bottom: 1rem;">Upcoming Goals</h3>
+        <div class="flex-col gap-md">
+            <div class="goal-item" style="background: rgba(255,255,255,0.03); padding: 1rem; border-radius: 8px;">
+                <div class="flex-between">
+                    <strong>DSA Finals</strong>
+                    <span style="font-size: 0.8rem; color: var(--col-accent);">2 Days</span>
+                </div>
+                <div class="progress"
+                    style="height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; margin-top: 0.5rem;">
+                    <div style="width: 80%; background: var(--col-accent); height: 100%; border-radius: 3px;"></div>
+                </div>
+            </div>
+
+            <div class="goal-item" style="background: rgba(255,255,255,0.03); padding: 1rem; border-radius: 8px;">
+                <div class="flex-between">
+                    <strong>System Design</strong>
+                    <span style="font-size: 0.8rem; color: var(--col-success);">1 Week</span>
+                </div>
+                <div class="progress"
+                    style="height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; margin-top: 0.5rem;">
+                    <div style="width: 40%; background: var(--col-success); height: 100%; border-radius: 3px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <a href="/study-plan" class="btn btn-glass"
+            style="width: 100%; margin-top: 1.5rem; text-align: center; display: block;">Create New Plan +</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const ctx = document.getElementById('studyChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            datasets: [{
+                label: 'Updates',
+                data: [65, 59, 80, 81, 56, 95, 85],
+                borderColor: 'hsl(250, 85%, 60%)',
+                backgroundColor: 'rgba(100, 50, 255, 0.2)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#aaa' } },
+                x: { grid: { display: false }, ticks: { color: '#aaa' } }
+            }
+        }
+    });
+</script>
+{% endblock %}

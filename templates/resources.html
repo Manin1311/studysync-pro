@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block title %}Resource Hub - StudySync Pro{% endblock %}
+{% block header %}Course Resources 📚{% endblock %}
+
+{% block content %}
+<div class="dashboard-layout" style="display: grid; grid-template-columns: 1fr 2fr; gap: 1.5rem;">
+    <!-- Upload Area -->
+    <div class="glass-panel" style="padding: 1.5rem; height: fit-content;">
+        <h3 class="mb-1"><i class="fa-solid fa-cloud-arrow-up"></i> Upload Resource</h3>
+        <p class="text-muted" style="margin-bottom: 1.5rem; font-size: 0.9rem;">Share notes, past papers, and slides.
+        </p>
+
+        <form id="uploadForm">
+            <div class="form-group">
+                <label class="form-label">Course</label>
+                <select class="form-input" id="uploadCourseId" required>
+                    <option value="">Select a Course...</option>
+                    <!-- Populated by JS -->
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Title</label>
+                <input type="text" class="form-input" id="uploadTitle" placeholder="e.g. Week 1 Lecture Notes" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Description (Optional)</label>
+                <textarea class="form-input" id="uploadDesc" rows="3"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">File</label>
+                <div class="file-drop-area"
+                    style="border: 2px dashed var(--glass-border); padding: 1.5rem; text-align: center; border-radius: var(--radius-sm); cursor: pointer;"
+                    onclick="document.getElementById('fileInput').click()">
+                    <i class="fa-solid fa-file-arrow-up"
+                        style="font-size: 2rem; color: var(--col-primary-light); margin-bottom: 0.5rem;"></i>
+                    <p id="fileName" class="text-muted">Click to browse</p>
+                    <input type="file" id="fileInput" hidden required>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Upload Resource</button>
+        </form>
+    </div>
+
+    <!-- Resource List -->
+    <div class="glass-panel" style="padding: 1.5rem;">
+        <div class="flex-between mb-1" style="margin-bottom: 1.5rem;">
+            <h3>Recent Uploads</h3>
+            <div class="flex-center gap-sm">
+                <input type="text" class="form-input" placeholder="Search resources..."
+                    style="padding: 0.5rem 1rem; width: 200px;">
+                <button class="btn btn-glass"><i class="fa-solid fa-filter"></i></button>
+            </div>
+        </div>
+
+        <div class="resources-grid" id="resourcesList"
+            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">
+            <!-- Populated by JS -->
+            <div class="text-muted" style="grid-column: 1/-1; text-align: center; padding: 2rem;">Loading resources...
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        loadCourses();
+        loadResources();
+
+        // File selection handler
+        document.getElementById('fileInput').addEventListener('change', (e) => {
+            const fileName = e.target.files[0]?.name || 'Click to browse';
+            document.getElementById('fileName').textContent = fileName;
+        });
+
+        // Upload Handler
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData();
+            formData.append('file', document.getElementById('fileInput').files[0]);
+            formData.append('course_id', document.getElementById('uploadCourseId').value);
+            formData.append('title', document.getElementById('uploadTitle').value);
+            formData.append('description', document.getElementById('uploadDesc').value);
+
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Uploading...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/resources', {
+                    method: 'POST',
+                    body: formData // No headers needed for FormData, browser sets multipart/form-data
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    showToast('Resource uploaded successfully!', 'success');
+                    e.target.reset();
+                    document.getElementById('fileName').textContent = 'Click to browse';
+                    loadResources();
+                } else {
+                    showToast(data.error || 'Upload failed', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('An error occurred', 'error');
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        });
+    });
+
+    async function loadCourses() {
+        try {
+            const res = await fetch('/api/courses');
+            const data = await res.json();
+            const select = document.getElementById('uploadCourseId');
+
+            if (data.courses) {
+                data.courses.forEach(course => {
+                    const option = document.createElement('option');
+                    option.value = course.id;
+                    option.textContent = course.code + ' - ' + course.name;
+                    select.appendChild(option);
+                });
+            }
+        } catch (err) {
+            console.error('Failed to load courses', err);
+        }
+    }
+
+    async function loadResources() {
+        try {
+            const res = await fetch('/api/resources');
+            const data = await res.json();
+            const grid = document.getElementById('resourcesList');
+            grid.innerHTML = '';
+
+            if (data.resources && data.resources.length > 0) {
+                data.resources.forEach(r => {
+                    const card = document.createElement('div');
+                    card.className = 'resource-card glass-panel';
+                    card.style.padding = '1rem';
+                    card.style.border = '1px solid rgba(255,255,255,0.05)';
+
+                    // Icon based on file type
+                    let icon = 'fa-file';
+                    if (['jpg', 'png', 'jpeg'].includes(r.file_type)) icon = 'fa-file-image';
+                    else if (r.file_type === 'pdf') icon = 'fa-file-pdf';
+                    else if (['doc', 'docx'].includes(r.file_type)) icon = 'fa-file-word';
+
+                    card.innerHTML = `
+                        <div class="flex-between mb-1" style="margin-bottom: 0.5rem; align-items: flex-start;">
+                            <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa-solid ${icon}" style="font-size: 1.2rem; color: var(--col-primary-light);"></i>
+                            </div>
+                            <span style="font-size: 0.8rem; color: var(--col-text-muted);">${r.file_type.toUpperCase()}</span>
+                        </div>
+                        <h4 style="margin-bottom: 0.2rem; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${r.title}</h4>
+                        <p class="text-muted" style="font-size: 0.8rem; margin-bottom: 1rem;">${r.description || 'No description'}</p>
+                        
+                        <a href="/api/resources/${r.id}/download" class="btn btn-glass btn-sm" style="width: 100%; display: flex; justify-content: center;">
+                            <i class="fa-solid fa-download"></i> Download
+                        </a>
+                    `;
+                    grid.appendChild(card);
+                });
+            } else {
+                grid.innerHTML = '<div class="text-muted" style="grid-column: 1/-1; text-align: center;">No resources found. Be the first to upload!</div>';
+            }
+        } catch (err) {
+            console.error('Failed to load resources', err);
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudySync Pro - AI-Powered Learning Ecosystem</title>
+    <link rel="stylesheet" href="static/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <a href="#" class="navbar-brand">🚀 StudySync Pro</a>
+        <ul class="nav-links" id="navLinks">
+            <ul class="nav-links">
+                <li><a href="#" onclick="showPage('dashboard')">Dashboard</a></li>
+                <li><a href="#" onclick="showPage('courses')">Courses</a></li>
+                <li><a href="#" onclick="showPage('notes')">Notes</a></li>
+                <li><a href="#" onclick="showPage('flashcards')">Flashcards</a></li>
+                <li><a href="#" onclick="showPage('ai-assistant')">AI Assistant</a></li>
+                <li><a href="#" onclick="showPage('partners')">Partners</a></li>
+                <li><a href="#" onclick="showPage('achievements')">Achievements</a></li>
+            </ul>
+            <li><a href="#" id="themeToggleBtn" onclick="toggleTheme()" title="Toggle theme">🌙</a></li>         <li><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
+    </nav>
+
+    <!-- Login/Register Page -->
+    <div id="authPage" class="container">
+        <div style="max-width: 400px; margin: 5rem auto;">
+            <div class="glass-card">
+                <h2 class="text-center mb-3">Welcome to StudySync Pro</h2>
+                <div id="authTabs" style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+                    <button class="btn btn-primary" style="flex: 1;" onclick="showAuthTab('login')">Login</button>
+                    <button class="btn" style="flex: 1; background: rgba(255,255,255,0.2);" onclick="showAuthTab('register')">Register</button>
+                </div>
+
+                <!-- Login Form -->
+                <div id="loginForm">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="loginEmail" class="form-control" placeholder="your@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="loginPassword" class="form-control" placeholder="••••••••">
+                    </div>
+                    <button class="btn btn-primary" style="width: 100%;" onclick="handleLogin()">Login</button>
+                </div>
+
+                <!-- Register Form -->
+                <div id="registerForm" class="hidden">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="registerEmail" class="form-control" placeholder="your@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="registerPassword" class="form-control" placeholder="••••••••">
+                    </div>
+                    <button class="btn btn-secondary" style="width: 100%;" onclick="handleRegister()">Register</button>
+                </div>
+
+                <div id="authMessage" class="mt-2"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App (Hidden initially) -->
+    <div id="app" class="hidden">
+        <div class="container">
+            <!-- Dashboard -->
+            <div id="dashboardPage" class="page" style="display: block;">
+                <h1 class="mb-3">Dashboard</h1>
+                <div class="grid grid-4 mb-3">
+                    <div class="card">
+                        <div class="card-header">Total Notes</div>
+                        <div style="font-size: 2rem; font-weight: bold; color: var(--primary);" id="statsNotes">0</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">Flashcards</div>
+                        <div style="font-size: 2rem; font-weight: bold; color: var(--secondary);" id="statsFlashcards">0</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">Study Time (Week)</div>
+                        <div style="font-size: 2rem; font-weight: bold; color: var(--accent);" id="statsTime">0 min</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">Due Flashcards</div>
+                        <div style="font-size: 2rem; font-weight: bold; color: var(--primary);" id="statsDue">0</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-2">
+                    <div class="card">
+                        <div class="card-header">Study Progress</div>
+                        <canvas id="progressChart"></canvas>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">Recent Activity</div>
+                        <div id="recentActivity"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notes Page -->
+            <div id="notesPage" class="page hidden" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <h1>My Notes</h1>
+                    <button class="btn btn-primary" onclick="showCreateNoteModal()">+ New Note</button>
+                </div>
+                <div class="form-group">
+                    <select id="courseFilter" class="form-control" onchange="loadNotes()">
+                        <option value="">All Courses</option>
+                    </select>
+                </div>
+                <div id="notesList" class="grid grid-3"></div>
+            </div>
+
+            <!-- Courses Page -->            <div id="coursesPage" class="page hidden" style="display:none;">
+               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                   <h1>Courses</h1>
+                  <button class="btn btn-primary" onclick="showCreateCourseModal()">+ New Course</button>
+               </div>
+               <div id="coursesList" class="grid grid-3"></div>
+           </div>
+             <!-- Flashcards Page -->
+             <div id="flashcardsPage" class="page hidden" style="display: none;">
+                 <h1 class="mb-3">Flashcards</h1>
+                 <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+                     <button class="btn btn-primary" onclick="showCreateFlashcardModal()">+ New Flashcard</button>
+                     <button class="btn btn-secondary" onclick="startReviewSession()">Start Review</button>
+                 </div>
+                 <div id="flashcardsList" class="grid grid-3"></div>
+             </div>
+
+            <!-- AI Assistant Page -->
+            <div id="ai-assistantPage" class="page hidden" style="display: none;">
+                <h1 class="mb-3">AI Study Assistant</h1>
+                <div class="glass-card mb-3">
+                    <div id="chatMessages" style="min-height: 400px; max-height: 500px; overflow-y: auto; margin-bottom: 1rem;"></div>
+                    <div style="display: flex; gap: 1rem;">
+                        <input type="text" id="chatInput" class="form-control" placeholder="Ask a question about your notes..." onkeypress="if(event.key==='Enter') sendMessage()">
+                        <button class="btn btn-primary" onclick="sendMessage()">Send</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Partners Page -->
+            <div id="partnersPage" class="page hidden" style="display: none;">
+                <h1 class="mb-3">Study Partners</h1>
+                <button class="btn btn-primary mb-3" onclick="findPartners()">Find Partners</button>
+                <div id="partnersList" class="grid grid-3"></div>
+            </div>
+
+            <!-- Achievements Page -->
+            <div id="achievementsPage" class="page hidden" style="display: none;">
+                <h1 class="mb-3">Achievements</h1>
+                <div id="achievementsList" class="grid grid-4"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="createNoteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create Note</h2>
+                <span class="close" onclick="closeModal('createNoteModal')">&times;</span>
+            </div>
+            <div class="form-group">
+                <label>Course</label>
+                <select id="noteCourse" class="form-control"></select>
+            </div>
+            <div class="form-group">
+                <label>Title</label>
+                <input type="text" id="noteTitle" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Content</label>
+                <textarea id="noteContent" class="form-control" rows="10"></textarea>
+            </div>
+            <button class="btn btn-primary" onclick="saveNote()">Save Note</button>
+        </div>
+    </div>
+
+   <div id="createCourseModal" class="modal">
+       <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create Course</h2>
+               <span class="close" onclick="closeModal('createCourseModal')">&times;</span>
+           </div>
+           <div class="form-group">
+               <label>Course Name</label>
+<input type="text" id="courseName" class="form-control" />
+          </div>
+<div class="form-group">
+               <label>Course Code</label>
+              <input type="text" id="courseCode" class="form-control" />
+           </div>            <div class="form-group">
+                <label>Description</label>
+                <textarea id="courseDesc" class="form-control" rows="5"></textarea>
+           </div>
+            <button class="btn btn-primary" onclick="saveCourse()">Save Course</button>
+        </div>
+    </div>
+
+    <div id="createFlashcardModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create Flashcard</h2>
+                <span class="close" onclick="closeModal('createFlashcardModal')">&times;</span>
+            </div>
+            <div class="form-group">
+                <label>Note</label>
+                <select id="flashcardNote" class="form-control"></select>
+            </div>
+            <div class="form-group">
+                <label>Front (Question)</label>
+                <input type="text" id="flashcardFront" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Back (Answer)</label>
+                <input type="text" id="flashcardBack" class="form-control">
+            </div>
+            <button class="btn btn-primary" onclick="saveFlashcard()">Save Flashcard</button>
+        </div>
+    </div>
+
+    <script src="static/js/api.js"></script>
+    <script src="static/js/app.js"></script>
+    <script>
+        // Global error handler
+        window.addEventListener('error', function(e) {
+            console.error('Global error:', e.error);
+        });
+        
+        // Debug: Log when page loads
+        console.log('Page loaded, checking auth...');
+    </script>
+</body>
+</html>
+<!-- Exam Predictor Page -->
+<div id="exam-predictorPage" class="page hidden" style="display:none;">
+    <h1 class="mb-3">Exam Predictor</h1>
+    <div class="form-group">
+        <label>Course</label>
+        <select id="examCourse" class="form-control"></select>
+    </div>
+    <div style="display:flex; gap:1rem; margin-bottom:1rem;">
+        <button class="btn btn-primary" onclick="analyzeExam()">Analyze Course</button>
+        <button class="btn btn-secondary" onclick="loadPredictions()">Load Predictions</button>
+    </div>
+    <div id="examResults" class="grid grid-2"></div>
+</div>
+

@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}AI Study Planner - StudySync Pro{% endblock %}
+{% block header %}AI Study Optimizer 🧠{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+    <!-- Generator Form -->
+    <div class="glass-panel" style="padding: 1.5rem;">
+        <h3 class="mb-1 text-gradient">Create New Plan</h3>
+        <p class="text-muted" style="margin-bottom: 1.5rem;">Our DP algorithm will optimize your schedule to prevent
+            burnout.</p>
+
+        <form id="planForm">
+            <div class="form-group">
+                <label class="form-label">Plan Title</label>
+                <input type="text" class="form-input" id="planTitle" placeholder="e.g. Finals Prep" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Exam Date</label>
+                <input type="date" class="form-input" id="examDate" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Daily Study Hours</label>
+                <input type="number" class="form-input" id="hoursPerDay" value="4" min="1" max="12">
+            </div>
+
+            <label class="form-label">Topics to Cover</label>
+            <div id="topicsContainer" style="margin-bottom: 1rem;">
+                <div class="topic-row flex-between gap-sm mb-1">
+                    <input type="text" class="form-input" placeholder="Topic Name" name="topicName">
+                    <input type="number" class="form-input" placeholder="Hours Needed" name="topicWeight"
+                        style="width: 100px;">
+                </div>
+            </div>
+
+            <button type="button" class="btn btn-glass btn-sm mb-1" onclick="addTopicRow()">+ Add Topic</button>
+
+            <div style="margin-top: 2rem;">
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Generate Optimized Schedule
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Existing Plans / Result View -->
+    <div class="glass-panel" style="padding: 1.5rem; overflow-y: auto; max-height: 80vh;">
+        <h3>Your Study Schedule</h3>
+        <div id="scheduleResult" style="margin-top: 1.5rem;">
+            <div class="text-muted" style="text-align: center;">Generate a plan to see your schedule here.</div>
+        </div>
+    </div>
+</div>
+
+<template id="dayCardTemplate">
+    <div class="day-card"
+        style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid var(--col-primary);">
+        <div class="flex-between">
+            <h4 class="date-header"></h4>
+            <span class="hours-badge"
+                style="background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;"></span>
+        </div>
+        <ul class="topics-list" style="margin-top: 0.5rem; padding-left: 1.2rem; color: var(--col-text-muted);">
+        </ul>
+    </div>
+</template>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function addTopicRow() {
+        const container = document.getElementById('topicsContainer');
+        const div = document.createElement('div');
+        div.className = 'topic-row flex-between gap-sm mb-1';
+        div.style.marginTop = '0.5rem';
+        div.innerHTML = `
+            <input type="text" class="form-input" placeholder="Topic Name" name="topicName">
+            <input type="number" class="form-input" placeholder="Hours" name="topicWeight" style="width: 100px;">
+            <button type="button" class="btn btn-glass" onclick="this.parentElement.remove()" style="color: var(--col-danger);"><i class="fa-solid fa-times"></i></button>
+        `;
+        container.appendChild(div);
+    }
+
+    document.getElementById('planForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        // Gather data
+        const title = document.getElementById('planTitle').value;
+        const examDate = document.getElementById('examDate').value;
+        const hoursPerDay = parseInt(document.getElementById('hoursPerDay').value);
+
+        const topics = [];
+        document.querySelectorAll('.topic-row').forEach(row => {
+            const name = row.querySelector('[name="topicName"]').value;
+            const weight = row.querySelector('[name="topicWeight"]').value;
+            if (name && weight) {
+                topics.push({ name, weight: parseInt(weight) });
+            }
+        });
+
+        if (topics.length === 0) {
+            showToast('Please add at least one topic', 'error');
+            return;
+        }
+
+        const btn = e.target.querySelector('button[type="submit"]');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Optimizing...';
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/api/study-plans', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title,
+                    exam_date: examDate,
+                    hours_per_day: hoursPerDay,
+                    topics
+                })
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                showToast('Schedule generated successfully!', 'success');
+                displaySchedule(data.schedule);
+            } else {
+                showToast(data.error || 'Generation failed', 'error');
+            }
+        } catch (err) {
+            console.error(err);
+            showToast('An error occurred', 'error');
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    });
+
+    function displaySchedule(schedule) {
+        const container = document.getElementById('scheduleResult');
+        container.innerHTML = '';
+
+        const template = document.getElementById('dayCardTemplate');
+
+        if (schedule.length === 0) {
+            container.innerHTML = '<div class="text-muted">No study days needed or exam is today!</div>';
+            return;
+        }
+
+        schedule.forEach(day => {
+            if (day.topics.length > 0) {
+                const clone = template.content.cloneNode(true);
+                clone.querySelector('.date-header').textContent = `${day.day_of_week}, ${day.date}`;
+                clone.querySelector('.hours-badge').textContent = `${day.total_hours} hrs`;
+
+                const list = clone.querySelector('.topics-list');
+                day.topics.forEach(t => {
+                    const li = document.createElement('li');
+                    li.textContent = `${t.name} (${t.weight} hrs)`;
+                    list.appendChild(li);
+                });
+
+                container.appendChild(clone);
+            }
+        });
+    }
+</script>
+{% endblock %}

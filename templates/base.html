@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}StudySync Pro{% endblock %}</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar glass-panel">
+            <div class="logo-area text-gradient">
+                <i class="fa-solid fa-bolt"></i> StudySync Pro
+            </div>
+            
+            <nav class="nav-links">
+                <a href="/dashboard" class="nav-item {% if active_page == 'dashboard' %}active{% endif %}">
+                    <i class="fa-solid fa-chart-line"></i> Dashboard
+                </a>
+                <a href="/courses" class="nav-item">
+                    <i class="fa-solid fa-book"></i> My Courses
+                </a>
+                <a href="/notes" class="nav-item">
+                    <i class="fa-solid fa-note-sticky"></i> Smart Notes
+                </a>
+                <a href="/flashcards" class="nav-item">
+                    <i class="fa-solid fa-layer-group"></i> Flashcards
+                </a>
+                <a href="/ai-chat" class="nav-item">
+                    <i class="fa-solid fa-robot"></i> AI Assistant
+                </a>
+                <div style="height: 1px; background: var(--glass-border); margin: 0.5rem 0;"></div>
+                <a href="/study-partner" class="nav-item">
+                    <i class="fa-solid fa-users"></i> Study Partners
+                </a>
+                <a href="/rooms" class="nav-item">
+                    <i class="fa-solid fa-video"></i> Study Rooms
+                </a>
+                <a href="/resources" class="nav-item">
+                    <i class="fa-solid fa-folder-open"></i> Resource Hub
+                </a>
+            </nav>
+            
+            <div class="user-profile">
+                <a href="#" class="nav-item" onclick="logout()">
+                    <i class="fa-solid fa-right-from-bracket"></i> Logout
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="header flex-between">
+                <div class="page-title">
+                    <h2>{% block header %}{% endblock %}</h2>
+                </div>
+                <div class="header-actions flex-center gap-md">
+                    <button class="btn btn-glass"><i class="fa-solid fa-bell"></i></button>
+                    <div class="user-avatar" style="width: 40px; height: 40px; background: var(--col-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                </div>
+            </header>
+
+            <div class="content-body">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script>
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <i class="fa-solid fa-${type === 'success' ? 'check-circle' : 'info-circle'}"></i>
+                <span>${message}</span>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        }
+
+        async function logout() {
+            try {
+                const res = await fetch('/api/auth/logout', { method: 'POST' });
+                window.location.href = '/login';
+            } catch (e) {
+                console.error(e);
+            }
+        }
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

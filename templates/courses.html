@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}My Courses - StudySync Pro{% endblock %}
+{% block header %}My Courses 📚{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid" style="grid-template-columns: 1fr; gap: 2rem;">
+    <!-- Course Actions -->
+    <div class="glass-panel text-right">
+        <button class="btn btn-primary" onclick="openCourseModal()">
+            <i class="fa-solid fa-plus"></i> Add New Course
+        </button>
+    </div>
+
+    <!-- Courses Grid -->
+    <div id="coursesGrid" class="dashboard-grid" style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));">
+        <!-- Courses will be loaded here -->
+        <div class="glass-panel text-center">Loading courses...</div>
+    </div>
+</div>
+
+<!-- Add Course Modal -->
+<div id="courseModal"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center;">
+    <div class="glass-panel" style="width: 100%; max-width: 500px; position: relative;">
+        <button onclick="closeCourseModal()"
+            style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        <h2 class="mb-1">Add New Course</h2>
+        <form id="courseForm">
+            <div class="form-group">
+                <label class="form-label">Course Name</label>
+                <input type="text" id="courseName" class="form-input" placeholder="e.g. Advanced Calculus" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Course Code</label>
+                <input type="text" id="courseCode" class="form-input" placeholder="e.g. MATH301" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Description (Optional)</label>
+                <textarea id="courseDesc" class="form-input" rows="3" placeholder="Brief description..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Create Course</button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', loadCourses);
+
+    async function loadCourses() {
+        const grid = document.getElementById('coursesGrid');
+        try {
+            const res = await fetch('/api/courses');
+            const data = await res.json();
+
+            grid.innerHTML = '';
+
+            if (data.courses.length === 0) {
+                grid.innerHTML = `
+                    <div class="glass-panel text-center" style="grid-column: 1/-1; padding: 3rem;">
+                        <i class="fa-solid fa-book" style="font-size: 3rem; margin-bottom: 1rem; color: var(--glass-border);"></i>
+                        <h3>No courses yet</h3>
+                        <p class="text-muted">Add your first course to get started!</p>
+                    </div>`;
+                return;
+            }
+
+            data.courses.forEach(course => {
+                const card = document.createElement('div');
+                card.className = 'glass-panel card-hover';
+                card.innerHTML = `
+                    <div class="flex-between mb-1">
+                        <span class="badge" style="background: rgba(124, 58, 237, 0.2); color: var(--col-primary-light);">${course.code}</span>
+                        <div class="dropdown">
+                            <i class="fa-solid fa-ellipsis-vertical" style="cursor: pointer; padding: 0.5rem;"></i>
+                        </div>
+                    </div>
+                    <h3 class="mb-1">${course.name}</h3>
+                    <p class="text-muted" style="font-size: 0.9rem; margin-bottom: 1.5rem; line-height: 1.5;">${course.description || 'No description provided.'}</p>
+                    
+                    <div style="border-top: 1px solid var(--glass-border); padding-top: 1rem; display: flex; gap: 1rem;">
+                        <a href="/notes?course_id=${course.id}" class="btn btn-glass" style="flex: 1; font-size: 0.8rem;"><i class="fa-solid fa-note-sticky"></i> Notes</a>
+                        <a href="/resources?course_id=${course.id}" class="btn btn-glass" style="flex: 1; font-size: 0.8rem;"><i class="fa-solid fa-folder"></i> Files</a>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+
+        } catch (e) {
+            console.error(e);
+            grid.innerHTML = '<div class="text-error">Failed to load courses</div>';
+        }
+    }
+
+    const modal = document.getElementById('courseModal');
+
+    function openCourseModal() {
+        modal.style.display = 'flex';
+    }
+
+    function closeCourseModal() {
+        modal.style.display = 'none';
+        document.getElementById('courseForm').reset();
+    }
+
+    document.getElementById('courseForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const name = document.getElementById('courseName').value;
+        const code = document.getElementById('courseCode').value;
+        const description = document.getElementById('courseDesc').value;
+
+        try {
+            const res = await fetch('/api/courses', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, code, description })
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                showToast('Course added successfully!', 'success');
+                closeCourseModal();
+                loadCourses();
+            } else {
+                showToast(data.error || 'Failed to add course', 'error');
+            }
+        } catch (err) {
+            console.error(err);
+            showToast('Error creating course', 'error');
+        }
+    });
+
+    // Close modal on outside click
+    window.onclick = function (event) {
+        if (event.target == modal) {
+            closeCourseModal();
+        }
+    }
+</script>
+{% endblock %}

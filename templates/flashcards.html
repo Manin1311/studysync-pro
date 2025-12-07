@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block title %}Flashcards - StudySync Pro{% endblock %}
+{% block header %}Flashcards 🧠{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid" style="grid-template-columns: 1fr; gap: 2rem;">
+    <!-- Review Section -->
+    <div class="glass-panel" id="reviewSection">
+        <div class="flex-between mb-1">
+            <h3>Review Queue</h3>
+            <span class="badge" id="dueCountBadge">0 Due</span>
+        </div>
+
+        <div id="studyArea"
+            style="min-height: 300px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;">
+
+            <!-- Empty State -->
+            <div id="studyEmpty" class="text-center">
+                <i class="fa-solid fa-check-circle" style="font-size: 4rem; color: #10b981; margin-bottom: 1rem;"></i>
+                <h3>All Caught Up!</h3>
+                <p class="text-muted">You've reviewed all your due cards.</p>
+                <div class="mt-2 text-center">
+                    <button class="btn btn-glass"
+                        onclick="document.getElementById('createSection').scrollIntoView({behavior: 'smooth'})">Create
+                        New Cards</button>
+                </div>
+            </div>
+
+            <!-- Card Display -->
+            <div id="flashcard" class="flashcard"
+                style="display: none; width: 100%; max-width: 500px; height: 300px; perspective: 1000px; cursor: pointer;">
+                <div class="flashcard-inner"
+                    style="position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.6s; transform-style: preserve-3d;">
+                    <!-- Front -->
+                    <div class="flashcard-front glass-panel"
+                        style="position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden; display: flex; align-items: center; justify-content: center; padding: 2rem; background: rgba(30, 41, 59, 0.8);">
+                        <h3 id="cardFront" style="font-size: 1.5rem;">Front Text</h3>
+                        <p class="text-muted" style="position: absolute; bottom: 1rem; font-size: 0.8rem;">Click to flip
+                        </p>
+                    </div>
+                    <!-- Back -->
+                    <div class="flashcard-back glass-panel"
+                        style="position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden; transform: rotateY(180deg); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; background: rgba(88, 28, 135, 0.8);">
+                        <h3 id="cardBack" style="font-size: 1.5rem;">Back Text</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls (Only visible when studying) -->
+            <div id="studyControls" style="display: none; margin-top: 2rem; gap: 1rem;">
+                <button class="btn btn-glass" style="border-color: #ef4444; color: #ef4444;"
+                    onclick="reviewCard(false)">Hard / Forgot</button>
+                <button class="btn btn-glass" style="border-color: #10b981; color: #10b981;"
+                    onclick="reviewCard(true)">Easy / Remembered</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Section -->
+    <div id="createSection" class="dashboard-grid" style="grid-template-columns: 1fr 1fr; gap: 2rem;">
+        <!-- New Card Form -->
+        <div class="glass-panel">
+            <h3>Add New Flashcard</h3>
+            <form id="createCardForm" class="mt-1">
+                <div class="form-group">
+                    <label class="form-label">Note / Context</label>
+                    <select id="noteSelect" class="form-input" required>
+                        <option value="">Select a Note</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Front (Question)</label>
+                    <textarea id="cardFrontInput" class="form-input" rows="2" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Back (Answer)</label>
+                    <textarea id="cardBackInput" class="form-input" rows="2" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Create Flashcard</button>
+            </form>
+        </div>
+
+        <!-- Recent Cards List -->
+        <div class="glass-panel">
+            <h3>Recent Cards</h3>
+            <div id="recentCardsList" style="margin-top: 1rem; max-height: 300px; overflow-y: auto;">
+                <div class="text-center text-muted">Loading...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .flashcard.flipped .flashcard-inner {
+        transform: rotateY(180deg);
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let reviewQueue = [];
+    let currentCardIndex = 0;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadNotes(); // For selector
+        loadReviewQueue();
+        loadRecentCards();
+    });
+
+    async function loadNotes() {
+        try {
+            const res = await fetch('/api/notes');
+            const data = await res.json();
+            const select = document.getElementById('noteSelect');
+            data.notes.forEach(note => {
+                const opt = document.createElement('option');
+                opt.value = note.id;
+                opt.textContent = note.title;
+                select.appendChild(opt);
+            });
+        } catch (e) { console.error(e); }
+    }
+
+    async function loadReviewQueue() {
+        try {
+            const res = await fetch('/api/flashcards/review-queue');
+            const data = await res.json();
+            reviewQueue = data.review_queue;
+
+            document.getElementById('dueCountBadge').textContent = `${reviewQueue.length} Due`;
+
+            if (reviewQueue.length > 0) {
+                currentCardIndex = 0;
+                showCard(reviewQueue[0]);
+                document.getElementById('studyEmpty').style.display = 'none';
+                document.getElementById('flashcard').style.display = 'block';
+                document.getElementById('studyControls').style.display = 'flex';
+                // Reset flip state
+                document.getElementById('flashcard').classList.remove('flipped');
+            } else {
+                document.getElementById('studyEmpty').style.display = 'block';
+                document.getElementById('flashcard').style.display = 'none';
+                document.getElementById('studyControls').style.display = 'none';
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function showCard(card) {
+        document.getElementById('cardFront').textContent = card.front;
+        document.getElementById('cardBack').textContent = card.back;
+    }
+
+    // Flip interaction
+    document.getElementById('flashcard').addEventListener('click', function () {
+        this.classList.toggle('flipped');
+    });
+
+    async function reviewCard(isSuccess) {
+        if (reviewQueue.length === 0) return;
+
+        const card = reviewQueue[currentCardIndex];
+
+        try {
+            // Optimistic UI update
+            document.getElementById('flashcard').classList.remove('flipped');
+
+            // Send API request in background
+            fetch(`/api/flashcards/${card.id}/review`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ correct: isSuccess })
+            });
+
+            // Move to next card
+            currentCardIndex++;
+            if (currentCardIndex < reviewQueue.length) {
+                setTimeout(() => {
+                    showCard(reviewQueue[currentCardIndex]);
+                }, 300); // Wait for flip back
+            } else {
+                // Done
+                document.getElementById('studyEmpty').style.display = 'block';
+                document.getElementById('flashcard').style.display = 'none';
+                document.getElementById('studyControls').style.display = 'none';
+                document.getElementById('dueCountBadge').textContent = "0 Due";
+                showToast("Session Complete! 🎉", "success");
+            }
+
+        } catch (e) {
+            console.error(e);
+            showToast("Error syncing progress", "error");
+        }
+    }
+
+    // Create Card
+    document.getElementById('createCardForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const noteId = document.getElementById('noteSelect').value;
+        const front = document.getElementById('cardFrontInput').value;
+        const back = document.getElementById('cardBackInput').value;
+
+        try {
+            const res = await fetch('/api/flashcards', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ note_id: noteId, front, back })
+            });
+
+            if (res.ok) {
+                showToast('Flashcard created', 'success');
+                document.getElementById('createCardForm').reset();
+                loadRecentCards();
+            } else {
+                const data = await res.json();
+                showToast(data.error || 'Creation failed', 'error');
+            }
+        } catch (e) {
+            showToast('Error creating card', 'error');
+        }
+    });
+
+    async function loadRecentCards() {
+        // Just load all for now (simple implementation)
+        try {
+            const res = await fetch('/api/flashcards');
+            const data = await res.json();
+
+            const list = document.getElementById('recentCardsList');
+            list.innerHTML = '';
+
+            // Show last 5 reversed
+            const recent = data.flashcards.reverse().slice(0, 5);
+
+            recent.forEach(c => {
+                const div = document.createElement('div');
+                div.className = 'glass-panel mb-1';
+                div.style.padding = '1rem';
+                div.style.background = 'rgba(255,255,255,0.03)';
+                div.innerHTML = `
+                    <div style="font-weight: bold; margin-bottom: 0.5rem;">Q: ${c.front}</div>
+                    <div class="text-muted">A: ${c.back}</div>
+                `;
+                list.appendChild(div);
+            });
+        } catch (e) { console.error(e); }
+    }
+</script>
+{% endblock %}
