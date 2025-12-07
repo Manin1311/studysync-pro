@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudySync Pro API Tester</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        textarea {
+            min-height: 80px;
+            font-family: monospace;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            margin-top: 5px;
+        }
+        
+        button:hover {
+            background: #5568d3;
+        }
+        
+        .response {
+            margin-top: 15px;
+            padding: 15px;
+            background: #fff;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .response pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .success {
+            border-left: 4px solid #10b981;
+        }
+        
+        .error {
+            border-left: 4px solid #ef4444;
+        }
+        
+        .info {
+            background: #e0f2fe;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #0ea5e9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 StudySync Pro API Tester</h1>
+        <p class="subtitle">Test your API endpoints directly from the browser</p>
+        
+        <div class="info">
+            <strong>Base URL:</strong> http://localhost:5000/api<br>
+            <strong>Note:</strong> Make sure your Flask server is running!
+        </div>
+        
+        <!-- Authentication Section -->
+        <div class="section">
+            <h2>🔐 Authentication</h2>
+            
+            <div class="form-group">
+                <label>Email:</label>
+                <input type="email" id="email" value="test@example.com">
+            </div>
+            
+            <div class="form-group">
+                <label>Password:</label>
+                <input type="password" id="password" value="test123">
+            </div>
+            
+            <button onclick="register()">Register</button>
+            <button onclick="login()">Login</button>
+            <button onclick="getCurrentUser()">Get Current User</button>
+            <button onclick="logout()">Logout</button>
+            
+            <div id="authResponse" class="response" style="display:none;"></div>
+        </div>
+        
+        <!-- Courses Section -->
+        <div class="section">
+            <h2>📚 Courses</h2>
+            
+            <div class="form-group">
+                <label>Course Name:</label>
+                <input type="text" id="courseName" value="Data Structures">
+            </div>
+            
+            <div class="form-group">
+                <label>Course Code:</label>
+                <input type="text" id="courseCode" value="CS201">
+            </div>
+            
+            <div class="form-group">
+                <label>Description:</label>
+                <textarea id="courseDesc">Introduction to data structures and algorithms</textarea>
+            </div>
+            
+            <button onclick="createCourse()">Create Course</button>
+            <button onclick="getCourses()">Get All Courses</button>
+            
+            <div id="courseResponse" class="response" style="display:none;"></div>
+        </div>
+        
+        <!-- Notes Section -->
+        <div class="section">
+            <h2>📝 Notes</h2>
+            
+            <div class="form-group">
+                <label>Course ID:</label>
+                <input type="number" id="noteCourseId" placeholder="Enter course ID">
+            </div>
+            
+            <div class="form-group">
+                <label>Title:</label>
+                <input type="text" id="noteTitle" value="Lecture 1 Notes">
+            </div>
+            
+            <div class="form-group">
+                <label>Content:</label>
+                <textarea id="noteContent">This is my note content...</textarea>
+            </div>
+            
+            <button onclick="createNote()">Create Note</button>
+            <button onclick="getNotes()">Get All Notes</button>
+            
+            <div id="noteResponse" class="response" style="display:none;"></div>
+        </div>
+        
+        <!-- Flashcards Section -->
+        <div class="section">
+            <h2>🎴 Flashcards</h2>
+            
+            <div class="form-group">
+                <label>Note ID:</label>
+                <input type="number" id="flashcardNoteId" placeholder="Enter note ID">
+            </div>
+            
+            <div class="form-group">
+                <label>Front (Question):</label>
+                <input type="text" id="flashcardFront" value="What is Python?">
+            </div>
+            
+            <div class="form-group">
+                <label>Back (Answer):</label>
+                <input type="text" id="flashcardBack" value="A programming language">
+            </div>
+            
+            <button onclick="createFlashcard()">Create Flashcard</button>
+            <button onclick="getFlashcards()">Get All Flashcards</button>
+            <button onclick="getReviewQueue()">Get Review Queue</button>
+            
+            <div id="flashcardResponse" class="response" style="display:none;"></div>
+        </div>
+    </div>
+    
+    <script>
+        const BASE_URL = 'http://localhost:5000/api';
+        
+        function showResponse(elementId, data, isError = false) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = 'response ' + (isError ? 'error' : 'success');
+            element.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+        }
+        
+        async function makeRequest(method, endpoint, data = null) {
+            try {
+                const options = {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include'
+                };
+                
+                if (data) {
+                    options.body = JSON.stringify(data);
+                }
+                
+                const response = await fetch(BASE_URL + endpoint, options);
+                const result = await response.json();
+                
+                return {
+                    status: response.status,
+                    data: result
+                };
+            } catch (error) {
+                return {
+                    status: 0,
+                    data: { error: error.message }
+                };
+            }
+        }
+        
+        async function register() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const result = await makeRequest('POST', '/auth/register', { email, password });
+            showResponse('authResponse', result, result.status >= 400);
+        }
+        
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const result = await makeRequest('POST', '/auth/login', { email, password });
+            showResponse('authResponse', result, result.status >= 400);
+        }
+        
+        async function getCurrentUser() {
+            const result = await makeRequest('GET', '/auth/me');
+            showResponse('authResponse', result, result.status >= 400);
+        }
+        
+        async function logout() {
+            const result = await makeRequest('POST', '/auth/logout');
+            showResponse('authResponse', result, result.status >= 400);
+        }
+        
+        async function createCourse() {
+            const name = document.getElementById('courseName').value;
+            const code = document.getElementById('courseCode').value;
+            const description = document.getElementById('courseDesc').value;
+            const result = await makeRequest('POST', '/courses', { name, code, description });
+            showResponse('courseResponse', result, result.status >= 400);
+        }
+        
+        async function getCourses() {
+            const result = await makeRequest('GET', '/courses');
+            showResponse('courseResponse', result, result.status >= 400);
+        }
+        
+        async function createNote() {
+            const course_id = parseInt(document.getElementById('noteCourseId').value);
+            const title = document.getElementById('noteTitle').value;
+            const content = document.getElementById('noteContent').value;
+            const result = await makeRequest('POST', '/notes', { course_id, title, content });
+            showResponse('noteResponse', result, result.status >= 400);
+        }
+        
+        async function getNotes() {
+            const result = await makeRequest('GET', '/notes');
+            showResponse('noteResponse', result, result.status >= 400);
+        }
+        
+        async function createFlashcard() {
+            const note_id = parseInt(document.getElementById('flashcardNoteId').value);
+            const front = document.getElementById('flashcardFront').value;
+            const back = document.getElementById('flashcardBack').value;
+            const result = await makeRequest('POST', '/flashcards', { note_id, front, back });
+            showResponse('flashcardResponse', result, result.status >= 400);
+        }
+        
+        async function getFlashcards() {
+            const result = await makeRequest('GET', '/flashcards');
+            showResponse('flashcardResponse', result, result.status >= 400);
+        }
+        
+        async function getReviewQueue() {
+            const result = await makeRequest('GET', '/flashcards/review-queue');
+            showResponse('flashcardResponse', result, result.status >= 400);
+        }
+    </script>
+</body>
+</html>
+
