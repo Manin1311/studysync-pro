@@ -70,12 +70,28 @@
         <a href="/study-plan" class="btn btn-glass"
             style="width: 100%; margin-top: 1.5rem; text-align: center; display: block;">Create New Plan +</a>
     </div>
+    <!-- Trophy Case -->
+    <div class="trophy-case glass-panel">
+        <div class="flex-between">
+            <h3>Trophy Cabinet 🏆</h3>
+            <span class="text-muted" id="totalAchievements">0 Unlocked</span>
+        </div>
+
+        <div class="trophy-grid" id="trophyGrid">
+            <!-- Badges injected via JS -->
+            <div class="badge-item locked">
+                <div class="badge-icon">🔒</div>
+                <span class="badge-name">Loading...</span>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    // 1. Study Chart
     const ctx = document.getElementById('studyChart').getContext('2d');
     new Chart(ctx, {
         type: 'line',
@@ -102,5 +118,55 @@
             }
         }
     });
+
+    // 2. Trophy Case Logic
+    async function loadTrophies() {
+        try {
+            const response = await fetch('/api/achievements/stats');
+            const data = await response.json();
+
+            if (response.ok) {
+                const stats = data.stats;
+
+                // Define all possible badges
+                const allBadges = [
+                    { id: 'first_note', icon: '📝', name: 'First Note' },
+                    { id: 'week_warrior', icon: '🔥', name: 'Week Warrior' },
+                    { id: 'flashcard_starter', icon: '🎴', name: 'Card Shark' },
+                    { id: 'note_master', icon: '📚', name: 'Note Master' },
+                    { id: 'flashcard_master', icon: '🧠', name: 'Memory King' },
+                    { id: 'dedicated_student', icon: '🎓', name: 'Scholar' }
+                ];
+
+                const grid = document.getElementById('trophyGrid');
+                grid.innerHTML = ''; // Clear loading
+
+                // We don't have the exact list of unlocked IDs in stats, only counts.
+                // But usually we'd fetch the list. Let's fetch the list too.
+                const listResp = await fetch('/api/achievements');
+                const listData = await listResp.json();
+                const unlockedIds = new Set(listData.achievements.map(a => a.badge_type));
+
+                document.getElementById('totalAchievements').innerText = `${listData.total_count} / ${allBadges.length} Unlocked`;
+
+                allBadges.forEach(badge => {
+                    const isUnlocked = unlockedIds.has(badge.id);
+                    const el = document.createElement('div');
+                    el.className = `badge-item ${isUnlocked ? 'unlocked' : 'locked'}`;
+                    el.innerHTML = `
+                        <div class="badge-icon" title="${isUnlocked ? 'Unlocked!' : 'Locked'}">
+                            ${badge.icon}
+                        </div>
+                        <span class="badge-name">${badge.name}</span>
+                    `;
+                    grid.appendChild(el);
+                });
+            }
+        } catch (error) {
+            console.error('Error loading trophies:', error);
+        }
+    }
+
+    loadTrophies();
 </script>
 {% endblock %}

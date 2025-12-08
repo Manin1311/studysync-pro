@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}AI Exam Predictor - StudySync Pro{% endblock %}
+{% block header %}Crystal Ball 🔮{% endblock %}
+
+{% block content %}
+<div class="glass-panel" style="padding: 2rem; max-width: 800px; margin: 0 auto;">
+    <div class="flex-center flex-col" style="text-align: center; margin-bottom: 2rem;">
+        <h2 class="text-gradient">Predict Your Exam</h2>
+        <p class="text-muted">Our AI analyzes your notes to predict likely exam questions.</p>
+    </div>
+
+    <!-- Selection Stage -->
+    <div id="selectionStage">
+        <div class="form-group">
+            <label class="form-label">Select Course to Analyze</label>
+            <select id="courseSelect" class="form-input">
+                <option value="">-- Choose a Course --</option>
+                {% for course in courses %}
+                <option value="{{ course.id }}">{{ course.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button onclick="startPrediction()" class="btn btn-primary" style="width: 100%; justify-content: center;">
+            <i class="fas fa-magic"></i> Generate Predictions
+        </button>
+    </div>
+
+    <!-- Loading Stage -->
+    <div id="loadingStage" style="display: none; text-align: center; padding: 2rem;">
+        <div class="spinner" style="font-size: 3rem; margin-bottom: 1rem;">🔮</div>
+        <h3>Consulting the Oracle...</h3>
+        <p class="text-muted">Analyzing pattern frequency and keyword density...</p>
+    </div>
+
+    <!-- Results Stage -->
+    <div id="resultsStage" style="display: none;">
+        <div class="flex-between mb-1" style="margin-bottom: 1rem;">
+            <h3>Likely Questions</h3>
+            <button onclick="resetpredictor()" class="btn btn-glass btn-sm">New Prediction</button>
+        </div>
+
+        <div id="predictionsList">
+            <!-- Injected via JS -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+    @keyframes pulse {
+        0% {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        50% {
+            transform: scale(1.1);
+            opacity: 0.7;
+        }
+
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    .spinner {
+        animation: pulse 1.5s infinite ease-in-out;
+    }
+</style>
+
+<script>
+    async function startPrediction() {
+        const courseId = document.getElementById('courseSelect').value;
+        if (!courseId) {
+            alert('Please select a course first!');
+            return;
+        }
+
+        // Switch to loading
+        document.getElementById('selectionStage').style.display = 'none';
+        document.getElementById('loadingStage').style.display = 'block';
+
+        try {
+            // 1. Trigger Analysis
+            const analyzeResp = await fetch(`/api/exam-predictor/${courseId}/analyze`, { method: 'POST' });
+
+            if (!analyzeResp.ok) throw new Error('Analysis failed');
+
+            // 2. Fetch Results
+            const resultsResp = await fetch(`/api/exam-predictor/${courseId}`);
+            const data = await resultsResp.json();
+
+            renderResults(data.predictions);
+
+        } catch (error) {
+            console.error(error);
+            alert('Something went wrong interpreting the stars. Try again.');
+            resetpredictor();
+        }
+    }
+
+    function renderResults(predictions) {
+        document.getElementById('loadingStage').style.display = 'none';
+        document.getElementById('resultsStage').style.display = 'block';
+
+        const list = document.getElementById('predictionsList');
+        list.innerHTML = '';
+
+        if (predictions.length === 0) {
+            list.innerHTML = '<p class="text-muted text-center">Not enough notes to make a prediction yet. Write more!</p>';
+            return;
+        }
+
+        predictions.forEach(pred => {
+            const el = document.createElement('div');
+            el.className = 'prediction-card';
+            // Scale color from yellow (50%) to green (100%)
+            const color = pred.confidence_score > 80 ? 'var(--col-success)' : 'var(--col-warning)';
+
+            el.innerHTML = `
+                <div class="flex-between">
+                    <h4 style="margin-bottom: 0.5rem; font-weight: 500;">${pred.question_text}</h4>
+                    <span style="color: ${color}; font-weight: bold;">${pred.confidence_score}%</span>
+                </div>
+                <div class="confidence-bar-bg">
+                    <div class="confidence-bar-fill" style="width: ${pred.confidence_score}%; background: ${color};"></div>
+                </div>
+            `;
+            list.appendChild(el);
+        });
+    }
+
+    function resetpredictor() {
+        document.getElementById('resultsStage').style.display = 'none';
+        document.getElementById('loadingStage').style.display = 'none';
+        document.getElementById('selectionStage').style.display = 'block';
+    }
+</script>
+{% endblock %}

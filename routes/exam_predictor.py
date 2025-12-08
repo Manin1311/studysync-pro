@@ -8,6 +8,15 @@ import re
 
 exam_predictor = Blueprint('exam_predictor', __name__)
 
+@exam_predictor.route('/exam-predictor')
+@api_login_required
+def exam_predictor_page():
+    from flask import render_template
+    # Fetch courses for the dropdown
+    courses = Course.query.filter_by(user_id=current_user.id).all()
+    return render_template('exam_predictor.html', courses=courses, active_page='exam-predictor')
+
+
 def analyze_note_patterns(course_id):
     """Analyze notes to find frequently mentioned topics (pattern matching)"""
     notes = Note.query.filter_by(course_id=course_id).all()
