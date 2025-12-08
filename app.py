@@ -107,7 +107,10 @@ def create_app():
         # Get real user stats
         notes_count = Note.query.filter_by(user_id=current_user.id).count()
         flashcards_count = Flashcard.query.filter_by(user_id=current_user.id).count()
-        courses_count = Course.query.filter_by(user_id=current_user.id).count()
+        
+        # Count unique courses from user's notes (Course has no user_id)
+        user_notes = Note.query.filter_by(user_id=current_user.id).all()
+        courses_count = len(set(note.course_id for note in user_notes if note.course_id))
         
         # Calculate study streak
         week_ago = datetime.utcnow().date() - timedelta(days=7)
