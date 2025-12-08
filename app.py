@@ -59,6 +59,14 @@ def create_app():
     from routes.resources import resources
     
     app.register_blueprint(auth, url_prefix='/api/auth')
+    
+    @app.route('/logout')
+    def logout_page():
+        from flask_login import logout_user
+        from flask import redirect, url_for
+        logout_user()
+        return redirect(url_for('login'))
+
     app.register_blueprint(notes, url_prefix='/api')
     app.register_blueprint(courses, url_prefix='/api')
     app.register_blueprint(flashcards, url_prefix='/api')

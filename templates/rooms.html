@@ -108,7 +108,7 @@
 <script>
     let socket;
     let currentRoom = null;
-    let username = "User_" + Math.floor(Math.random() * 1000); // Placeholder until we get real username from backend template var
+    const username = "{{ current_user.username }}";
 
     // Canvas vars
     const canvas = document.getElementById('whiteboard');
