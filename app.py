@@ -100,7 +100,41 @@ def create_app():
     @login_required
     def dashboard():
         from flask import render_template
-        return render_template('dashboard.html', active_page='dashboard')
+        from datetime import datetime, timedelta
+        from sqlalchemy import func
+        
+        # Get real user stats
+        notes_count = Note.query.filter_by(user_id=current_user.id).count()
+        flashcards_count = Flashcard.query.filter_by(user_id=current_user.id).count()
+        courses_count = Course.query.filter_by(user_id=current_user.id).count()
+        
+        # Calculate study streak
+        week_ago = datetime.utcnow().date() - timedelta(days=7)
+        recent_analytics = Analytics.query.filter(
+            Analytics.user_id == current_user.id,
+            Analytics.date >= week_ago
+        ).all()
+        active_days = len(set(a.date for a in recent_analytics))
+        
+        # Get weekly analytics data for chart
+        chart_data = {
+            'labels': ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            'data': [0, 0, 0, 0, 0, 0, 0]
+        }
+        
+        for analytics in recent_analytics:
+            day_index = analytics.date.weekday()
+            chart_data['data'][day_index] += analytics.notes_created + analytics.flashcards_created
+        
+        stats = {
+            'notes_count': notes_count,
+            'flashcards_count': flashcards_count,
+            'courses_count': courses_count,
+            'active_days': active_days,
+            'chart_data': chart_data
+        }
+        
+        return render_template('dashboard.html', active_page='dashboard', stats=stats)
 
     @app.route("/resources")
     @login_required

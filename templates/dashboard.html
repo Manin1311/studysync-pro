@@ -8,20 +8,20 @@
     <!-- Stat Cards -->
     <div class="stat-card glass-panel">
         <span class="stat-label">Current Streak</span>
-        <div class="stat-value text-gradient">🔥 12 Days</div>
-        <p class="text-muted">Personal best: 15 days</p>
+        <div class="stat-value text-gradient">🔥 {{ stats.active_days }} Days</div>
+        <p class="text-muted">Keep it up!</p>
     </div>
 
     <div class="stat-card glass-panel">
         <span class="stat-label">Notes Created</span>
-        <div class="stat-value">45</div>
-        <p class="text-muted">+5 this week</p>
+        <div class="stat-value">{{ stats.notes_count }}</div>
+        <p class="text-muted">Across {{ stats.courses_count }} courses</p>
     </div>
 
     <div class="stat-card glass-panel">
-        <span class="stat-label">Flashcards Due</span>
-        <div class="stat-value" style="color: var(--col-warning)">28</div>
-        <button class="btn btn-primary btn-sm" style="margin-top: auto;">Review Now</button>
+        <span class="stat-label">Flashcards</span>
+        <div class="stat-value" style="color: var(--col-warning)">{{ stats.flashcards_count }}</div>
+        <a href="/flashcards" class="btn btn-primary btn-sm" style="margin-top: auto;">Review Now</a>
     </div>
 </div>
 
@@ -70,6 +70,7 @@
         <a href="/study-plan" class="btn btn-glass"
             style="width: 100%; margin-top: 1.5rem; text-align: center; display: block;">Create New Plan +</a>
     </div>
+
     <!-- Trophy Case -->
     <div class="trophy-case glass-panel">
         <div class="flex-between">
@@ -91,15 +92,17 @@
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // 1. Study Chart
+    // 1. Study Chart with REAL data
     const ctx = document.getElementById('studyChart').getContext('2d');
+    const chartData = {{ stats.chart_data | tojson }};
+
     new Chart(ctx, {
         type: 'line',
         data: {
-            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            labels: chartData.labels,
             datasets: [{
-                label: 'Updates',
-                data: [65, 59, 80, 81, 56, 95, 85],
+                label: 'Activity',
+                data: chartData.data,
                 borderColor: 'hsl(250, 85%, 60%)',
                 backgroundColor: 'rgba(100, 50, 255, 0.2)',
                 tension: 0.4,
@@ -113,7 +116,11 @@
                 legend: { display: false }
             },
             scales: {
-                y: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#aaa' } },
+                y: {
+                    grid: { color: 'rgba(255,255,255,0.1)' },
+                    ticks: { color: '#aaa' },
+                    beginAtZero: true
+                },
                 x: { grid: { display: false }, ticks: { color: '#aaa' } }
             }
         }
@@ -141,8 +148,7 @@
                 const grid = document.getElementById('trophyGrid');
                 grid.innerHTML = ''; // Clear loading
 
-                // We don't have the exact list of unlocked IDs in stats, only counts.
-                // But usually we'd fetch the list. Let's fetch the list too.
+                // Fetch the list of unlocked achievements
                 const listResp = await fetch('/api/achievements');
                 const listData = await listResp.json();
                 const unlockedIds = new Set(listData.achievements.map(a => a.badge_type));
