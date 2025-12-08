@@ -102,6 +102,7 @@ def create_app():
         from flask import render_template
         from datetime import datetime, timedelta
         from sqlalchemy import func
+        from models import Note, Flashcard, Course, Analytics
         
         # Get real user stats
         notes_count = Note.query.filter_by(user_id=current_user.id).count()
